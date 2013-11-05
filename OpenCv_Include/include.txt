@@ -1,0 +1,66 @@
+#-------------------------------------------------
+#
+# Project created by QtCreator 2013-07-13T18:18:37
+#
+#-------------------------------------------------
+
+QT       += core gui
+
+TARGET = Visual_Control
+TEMPLATE = app
+
+
+SOURCES += main.cpp\
+        dialog.cpp \
+    Epiphan.cpp
+
+HEADERS  += dialog.h \
+    v2u_ioctl.h \
+    v2u_id.h \
+    v2u_defs.h \
+    Epiphan.h
+
+FORMS    += dialog.ui
+
+INCLUDEPATH += C:/OpenCV-2.4.6/opencv/build/include
+
+LIBS += -LC:/OpenCV-2.4.6/mybuild/lib/ \
+  -lopencv_calib3d246d \
+  -lopencv_contrib246d \
+  -lopencv_core246d \
+  -lopencv_features2d246d \
+  -lopencv_flann246d \
+  -lopencv_gpu246d \
+  -lopencv_highgui246d \
+  -lopencv_imgproc246d \
+  -lopencv_legacy246d \
+  -lopencv_ml246d \
+  -lopencv_nonfree246d \
+  -lopencv_objdetect246d \
+  -lopencv_photo246d \
+  -lopencv_stitching246d \
+  -lopencv_superres246d \
+  -lopencv_ts246d \
+  -lopencv_video246d \
+  -lopencv_videostab246 \
+  -lopencv_calib3d246 \
+  -lopencv_contrib246 \
+  -lopencv_core246 \
+  -lopencv_features2d246 \
+  -lopencv_flann246 \
+  -lopencv_gpu246 \
+  -lopencv_highgui246 \
+  -lopencv_imgproc246 \
+  -lopencv_legacy246 \
+  -lopencv_ml246 \
+  -lopencv_nonfree246 \
+  -lopencv_objdetect246 \
+  -lopencv_photo246 \
+  -lopencv_stitching246 \
+  -lopencv_superres246 \
+  -lopencv_ts246 \
+  -lopencv_video246 \
+  -lopencv_videostab246 \
+
+LIBS += -LC:/Users/Eugen/Documents/Qt-Projekte/Visual_Control_Endoscope \
+  -lfrmgrab

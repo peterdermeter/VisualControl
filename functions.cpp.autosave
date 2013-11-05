@@ -1,0 +1,211 @@
+#include "functions.h"
+
+
+
+double imageFunctions::round(double x)
+{
+    using namespace std;
+
+    if ((numeric_limits<double>::max() - 0.5) <= x)
+        return numeric_limits<double>::max();
+
+    if ((-1*std::numeric_limits<double>::max() + 0.5) > x)
+        return (-1*std::numeric_limits<double>::max());
+
+    double intpart;
+    double fractpart = modf(x, &intpart);
+
+    if (fractpart >= 0.5)
+        return (intpart + 1);
+    else if (fractpart >= -0.5)
+        return intpart;
+    else
+        return (intpart - 1) ;
+
+}
+
+void getROI(const cv::Mat& src)
+{
+    hist = h.getHistogramValues(src);
+    cv::minMaxLoc(cv::MatND(hist, cv::Rect(0,0,1,100)), 0, &max, 0, &maxIndex);					//first max
+    cv::minMaxLoc(cv::MatND(hist, cv::Rect(0,maxIndex.y+10,1,30)), &min, 0, &minIndex, 0);		//first min after first max
+    minIndex.y += maxIndex.y + 10;
+
+    cv::threshold(src, src, minIndex.y, 255, CV_THRESH_BINARY_INV);
+    cv::morphologyEx(src, src, cv::MORPH_CLOSE, elementClose);
+    cv::morphologyEx(src, src, cv::MORPH_OPEN, elementOpen);
+}
+
+
+
+void getAngles(const cv::Mat &src, const std::vector<cv::Point2f> &MassCenter, std::vector<cv::Vec3d> &AngleData)
+{
+    unsigned int rows = src.rows;
+    unsigned int cols = src.cols;
+
+    unsigned int k = 2100;
+
+    cv::Vec3d AngleAndQuadrant;
+    for(unsigned int i = 0; i < MassCenter.size(); i++)
+    {
+        AngleAndQuadrant[0] = std::atan(std::abs(MassCenter[i].x-cols/2)/std::abs(MassCenter[i].y-rows/2)) * 180/M_PI;						//Angle_Rot
+        AngleAndQuadrant[1] = std::atan((std::sqrt(pow((MassCenter[i].x-cols/2), 2) + pow((MassCenter[i].y-rows/2), 2)))/k) * 180/M_PI;		//Angle_Bend
+
+        if(MassCenter[0].x >= cols/2)		//rechte hälfte
+        {
+            if(MassCenter[0].y <= rows/2)	//rechts oben
+            {
+                AngleAndQuadrant[2] = 1;
+            }
+            else							//rechts unten
+            {
+                AngleAndQuadrant[2] = 4;
+            }
+        }
+        else								//linke hälfte
+        {
+            if(MassCenter[0].y <=rows/2)	//links oben
+            {
+                AngleAndQuadrant[2] = 2;
+            }
+            else							//links unten
+            {
+                AngleAndQuadrant[2] = 3;
+            }
+        }
+        AngleData.push_back(AngleAndQuadrant);
+    }
+}
+
+
+
+void getMotorData(const std::vector<cv::Vec3d> &AngleData, const std::vector<cv::Vec2d> &AngleDataBefore, std::vector<cv::Vec2d> &AngleDataAfter, std::vector<cv::Vec2i> &MotorData)
+{
+    if (AngleData[0][2] == 1)
+    {
+        AngleDataAfter[0][0] = 90 - AngleData[0][0];
+        if(AngleDataAfter[0][0] <= -30)
+        {
+            AngleDataAfter[0][0] = -30.0;
+        }
+        else if(AngleDataAfter[0][0] >= 30)
+        {
+            AngleDataAfter[0][0] = 30.0;
+        }
+        MotorData[0][0] = int(round(-((AngleDataAfter[0][0] + 32) * 1750/93 + 2150)));
+
+        AngleDataAfter[0][1] = AngleDataBefore[0][1] - AngleData[0][1];
+        if(AngleDataAfter[0][1] <= -40)
+        {
+            AngleDataAfter[0][1] = -40.0;
+        }
+        else if(AngleDataAfter[0][1] >= 40)
+        {
+            AngleDataAfter[0][1] = 40;
+        }
+        if((AngleDataAfter[0][1] >= -40) && (AngleDataAfter[0][1] < (-16)))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 143) * 450/103 +1800));
+        }
+        else if((AngleDataAfter[0][1] >= (-16)) && (AngleDataAfter[0][1] <= 40))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 16) *450/85 +2400));
+        }
+    }
+
+    else if (AngleData[0][2] == 2)
+    {
+        AngleDataAfter[0][0] = AngleData[0][0];
+        if(AngleDataAfter[0][0] <= -30)
+        {
+            AngleDataAfter[0][0] = -30.0;
+        }
+        else if(AngleDataAfter[0][0] >= 30)
+        {
+            AngleDataAfter[0][0] = 30.0;
+        }
+        MotorData[0][0] = int(round(-((AngleDataAfter[0][0] + 32) * 1750/93 + 2150)));
+
+        AngleDataAfter[0][1] = AngleDataBefore[0][1] - AngleData[0][1];
+        if(AngleDataAfter[0][1] <= -40)
+        {
+            AngleDataAfter[0][1] = -40.0;
+        }
+        else if(AngleDataAfter[0][1] >= 40)
+        {
+            AngleDataAfter[0][1] = 40;
+        }
+        if((AngleDataAfter[0][1] >= -40) && (AngleDataAfter[0][1] < (-16)))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 143) * 450/103 +1800));
+        }
+        else if((AngleDataAfter[0][1] >= (-16)) && (AngleDataAfter[0][1] <= 40))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 16) *450/85 +2400));
+        }
+    }
+
+    else if (AngleData[0][2] == 3)
+    {
+        AngleDataAfter[0][0] = 90 - AngleData[0][0];
+        if(AngleDataAfter[0][0] <= -30)
+        {
+            AngleDataAfter[0][0] = -30.0;
+        }
+        else if(AngleDataAfter[0][0] >= 30)
+        {
+            AngleDataAfter[0][0] = 30.0;
+        }
+        MotorData[0][0] = int(round(-((AngleDataAfter[0][0] + 32) * 1750/93 + 2150)));
+
+        AngleDataAfter[0][1] = AngleDataBefore[0][1] + AngleData[0][1];
+        if(AngleDataAfter[0][1] <= -40)
+        {
+            AngleDataAfter[0][1] = -40.0;
+        }
+        else if(AngleDataAfter[0][1] >= 40)
+        {
+            AngleDataAfter[0][1] = 40;
+        }
+        if((AngleDataAfter[0][1] >= -40) && (AngleDataAfter[0][1] < (20)))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 107) * 600/127 +2100));
+        }
+        else if((AngleDataAfter[0][1] >= (20)) && (AngleDataAfter[0][1] <= 40))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 57) *150/18 +2850));
+        }
+    }
+
+    else
+    {
+        AngleDataAfter[0][0] = AngleData[0][0];
+        if(AngleDataAfter[0][0] <= -30)
+        {
+            AngleDataAfter[0][0] = -30.0;
+        }
+        else if(AngleDataAfter[0][0] >= 30)
+        {
+            AngleDataAfter[0][0] = 30.0;
+        }
+        MotorData[0][0] = int(round(-((AngleDataAfter[0][0] + 32) * 1750/93 + 2150)));
+
+        AngleDataAfter[0][1] = AngleDataBefore[0][1] + AngleData[0][1];
+        if(AngleDataAfter[0][1] <= -40)
+        {
+            AngleDataAfter[0][1] = -40.0;
+        }
+        else if(AngleDataAfter[0][1] >= 40)
+        {
+            AngleDataAfter[0][1] = 40;
+        }
+        if((AngleDataAfter[0][1] >= -40) && (AngleDataAfter[0][1] < (20)))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] + 107) * 600/127 + 2100));
+        }
+        else if((AngleDataAfter[0][1] >= (20)) && (AngleDataAfter[0][1] <= 40))
+        {
+            MotorData[0][1] = int(round((AngleDataAfter[0][1] - 57) *150/18 + 2850));
+        }
+    }
+}
